@@ -1,22 +1,76 @@
-const mongoose = require('mongoose');
+
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
+const jwt = require("jsonwebtoken");
+const bcrypt = require('bcrypt');
+
+
 
 // Connect to MongoDB
-mongoose.connect('your-mongodb-url');
+mongoose.connect(process.env.MONGODB_URL);
 
 // Define schemas
 
-const UserSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema(
+  {
     // Schema definition here
-});
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      unique: true,
+      
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 
+UserSchema.pre("save", async function (next) {
+    if(!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
+})
+UserSchema.methods.isPasswordCorrect=async function (password) {
+  return await bcrypt.compare(password,this.password)
+  
+}
 const TodoSchema = new mongoose.Schema({
-    // Schema definition here
-});
+  // Schema definition here
+  title: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+  category:{
+    type:String,
+    required:true
+  }
+},{timestamps:true});
 
-const User = mongoose.model('User', UserSchema);
-const Todo = mongoose.model('Todo', TodoSchema);
+const User = mongoose.model("User", UserSchema);
+const Todo = mongoose.model("Todo", TodoSchema);
 
 module.exports = {
-    User,
-    Todo
-}
+  User,
+  Todo,
+};
