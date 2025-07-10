@@ -3,19 +3,17 @@ const router = Router();
 const userMiddleware = require("../middleware/user");
 const { User } = require("../database/index");
 
-const generateAccessAndRefreshToken = async (userId) => {
+const generateAccessToken= async (userId) => {
   try {
     const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    user.refreshToken = refreshToken;
+  
+    user.accessToken = accessToken;
     await user.save({ validateBeforeSave: false });
 
-    return { accessToken, refreshToken };
+    return { accessToken};
   } catch (error) {
-    return res.status(500).json({
-      msg: "Something went wrong while generating Access Token and Refresh Token",
-    });
+    throw new Error("Something went wrong while generating Access Token.");
   }
 };
 
@@ -99,12 +97,12 @@ router.post("/login", async (req, res) => {
       msg: "Password is Wrong",
     });
   }
-  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+  const { accessToken} = await generateAccessToken(
     user._id
   );
 
   const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
+    "-password -accessToken"
   );
 
   const options = {
@@ -115,8 +113,6 @@ router.post("/login", async (req, res) => {
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-
     .json({
       msg: "User logged in successfully",
       user: loggedInUser,
@@ -128,8 +124,30 @@ router.post("/login", async (req, res) => {
 
 // });
 
-router.post("/logout", userMiddleware, (req, res) => {
+router.post("/logout", userMiddleware, async(req, res) => {
   // Implement logout logic
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $unset:{
+        accessToken:1
+      }
+    },{
+      new:true
+    }
+  )
+
+    const options={
+   httpOnly:true,
+   secure:true
+  }
+  res
+  .status(200)
+  .clearCookie("accessToken",options)
+  .json({
+    msg:"Logout successfully"
+  })
+
 
   
 });
