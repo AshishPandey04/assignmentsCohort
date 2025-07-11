@@ -13,15 +13,20 @@ async function userMiddleware(req, res, next) {
     const token = req.cookies?.accessToken|| req.header("Authorization")?.replace("Bearer ","");
       console.log("Received token:", token);
       if(!token){
-        throw new ApiError(401,"Unauthorized Token")
+        
+       return res.status(401).json({
+          msg:"Unauthorized Token"
+      })
     }
 
     const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-    const user= await User.findById(decodedToken?._id).select("-password -refreshToken")
+    const user= await User.findById(decodedToken?._id).select("-password -accessToken")
 
     if(!user){
-        throw new ApiError(401,"Invalid Access Token")
+      return res.status(401).json({
+        msg:"Invalid Access Token"
+    })
     }
 
     req.user=user;
