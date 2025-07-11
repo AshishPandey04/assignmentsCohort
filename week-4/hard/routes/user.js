@@ -3,15 +3,15 @@ const router = Router();
 const userMiddleware = require("../middleware/user");
 const { User } = require("../database/index");
 
-const generateAccessToken= async (userId) => {
+const generateAccessToken = async (userId) => {
   try {
     const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
-  
+
     user.accessToken = accessToken;
     await user.save({ validateBeforeSave: false });
 
-    return { accessToken};
+    return { accessToken };
   } catch (error) {
     throw new Error("Something went wrong while generating Access Token.");
   }
@@ -54,7 +54,7 @@ router.post("/signup", async (req, res) => {
     password,
   });
   const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken "
+    "-password  "
   );
   if (!createdUser) {
     return res.status(500).json({
@@ -97,7 +97,7 @@ router.post("/login", async (req, res) => {
       msg: "Password is Wrong",
     });
   }
-  const { accessToken} = await generateAccessToken(
+  const { accessToken } = await generateAccessToken(
     user._id
   );
 
@@ -110,12 +110,15 @@ router.post("/login", async (req, res) => {
     secure: true,
   };
 
+
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .json({
       msg: "User logged in successfully",
-      user: loggedInUser,
+
+      user: loggedInUser, accessToken
+
     });
 });
 
@@ -124,32 +127,29 @@ router.post("/login", async (req, res) => {
 
 // });
 
-router.post("/logout", userMiddleware, async(req, res) => {
+router.post("/logout", userMiddleware, async (req, res) => {
   // Implement logout logic
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $unset:{
-        accessToken:1
+      $unset: {
+        accessToken: 1
       }
-    },{
-      new:true
-    }
+    }, {
+    new: true
+  }
   )
 
-    const options={
-   httpOnly:true,
-   secure:true
+  const options = {
+    httpOnly: true,
+    secure: true
   }
-  res
-  .status(200)
-  .clearCookie("accessToken",options)
-  .json({
-    msg:"Logout successfully"
-  })
+  res.status(200).clearCookie("accessToken", options).json({
+      msg: "Logout successfully"
+    })
 
 
-  
+
 });
 
 module.exports = router;

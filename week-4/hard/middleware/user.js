@@ -10,26 +10,22 @@ async function userMiddleware(req, res, next) {
     // or else logout out 
 
   try {
-      const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
-
-    if(!token){
-        res.status(401).json({
-            msg:"Unauthorized token"
-        })
+    const token = req.cookies?.accessToken|| req.header("Authorization")?.replace("Bearer ","");
+      console.log("Received token:", token);
+      if(!token){
+        throw new ApiError(401,"Unauthorized Token")
     }
 
-    const decodedToken= jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
+    const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-    const user = await User.findById(decodedToken?._id).select("-password -accessToken")
+    const user= await User.findById(decodedToken?._id).select("-password -refreshToken")
 
     if(!user){
-        res.status(401).json({
-            msg:"Invalid Access Token"
-        })
+        throw new ApiError(401,"Invalid Access Token")
     }
 
-    req.user=user
-    next();
+    req.user=user;
+    next()
   } catch (error) {
     res.status(500).json({
         msg:error?.message
