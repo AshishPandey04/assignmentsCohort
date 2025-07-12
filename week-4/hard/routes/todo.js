@@ -13,7 +13,7 @@ router.post("/", userMiddleware, async (req, res) => {
       msg: "title , description and category is required",
     });
   }
-  const owner = req.user;
+  const owner = req.user._id;
   if (!owner) {
     return res.status(401).json({
       msg: "Login to Add Todo",
